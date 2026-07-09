@@ -1,5 +1,15 @@
 mod common;
 
+mod key {
+    use esp_nvs::Key;
+
+    #[test]
+    #[should_panic(expected = "value must be within the ascii range")]
+    fn non_ascii_key() {
+        let _ = Key::from_str("ungültig");
+    }
+}
+
 mod set {
     use esp_nvs::Key;
     use esp_nvs::error::Error;

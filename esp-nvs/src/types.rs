@@ -22,13 +22,9 @@ impl Key {
     ///   `let my_key = const { Key::from_array(b"my_key") };`
     pub const fn from_array<const M: usize>(src: &[u8; M]) -> Self {
         assert!(M <= MAX_KEY_LENGTH);
-        let mut dst = [0u8; MAX_KEY_NUL_TERMINATED_LENGTH];
-        let mut i = 0;
-        while i < M {
-            dst[i] = src[i];
-            i += 1;
-        }
-        Self(dst)
+        let mut key = Key([0u8; MAX_KEY_NUL_TERMINATED_LENGTH]);
+        key.fill(src);
+        key
     }
 
     /// Creates a 16 byte, null-padded byte array used as key for values and namespaces.
@@ -39,13 +35,9 @@ impl Key {
     ///   `let my_key = const { Key::from_slice("my_key".as_bytes()) };`
     pub const fn from_slice(src: &[u8]) -> Self {
         assert!(src.len() <= MAX_KEY_LENGTH);
-        let mut dst = [0u8; MAX_KEY_NUL_TERMINATED_LENGTH];
-        let mut i = 0;
-        while i < src.len() {
-            dst[i] = src[i];
-            i += 1;
-        }
-        Self(dst)
+        let mut key = Key([0u8; MAX_KEY_NUL_TERMINATED_LENGTH]);
+        key.fill(src);
+        key
     }
 
     /// Creates a 16 byte, null-padded byte array used as key for values and namespaces.
@@ -69,6 +61,18 @@ impl Key {
         let len = self.0.iter().position(|&b| b == 0).unwrap_or(self.0.len());
         // Safety: NVS keys are always valid ASCII/UTF-8
         unsafe { core::str::from_utf8_unchecked(&self.0[..len]) }
+    }
+
+    const fn fill(&mut self, src: &[u8]) {
+        let mut i = 0;
+        while i < src.len() {
+            assert!(src[i].is_ascii(), "value must be within the ascii range");
+            // [`core::ascii::Char`] requires nightly.
+            // [`assert_ne()`] is not yet const.
+            assert!(src[i] != 0, "value must be different from the null character");
+            self.0[i] = src[i];
+            i += 1;
+        }
     }
 }
 
